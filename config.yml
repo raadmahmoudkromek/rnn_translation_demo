@@ -1,0 +1,5 @@
+language_a: "en"
+language_b: "es"
+
+language_a_train_file: "language_files/europarl-v7.es-en.en"
+language_b_train_file: "language_files/europarl-v7.es-en.es"
