@@ -1,5 +1,8 @@
-language_a: "en"
-language_b: "es"
+language_a: "en_core_web_sm" # The most popular spacy pipeline for the english language
+language_b: "es_core_news_sm" # The most popular spacy pipeline for the spanish language
 
-language_a_train_file: "language_files/europarl-v7.es-en.en"
-language_b_train_file: "language_files/europarl-v7.es-en.es"
+language_a_train_file: "language_files/europarl-v7.es-en.en" # Training data file for english
+language_b_train_file: "language_files/europarl-v7.es-en.es" # Training data file for spanish
+
+training:
+  batch_size: 128
