@@ -27,5 +27,5 @@ train_dataloader = DataLoader(
     list(train_iter),
     batch_size=config['training']['batch_size'],
     shuffle=True,
-    collate_fn=data_processor.generate_batch
+    collate_fn=data_processor.collation
 )

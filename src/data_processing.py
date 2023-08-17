@@ -9,7 +9,7 @@ from os import PathLike
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.data.utils import get_tokenizer
-from torchtext.vocab import Vocab, build_vocab_from_iterator
+from torchtext.vocab import vocab, build_vocab_from_iterator
 
 
 def build_vocab(filepath, tokenizer):
@@ -26,9 +26,9 @@ def build_vocab(filepath, tokenizer):
     with io.open(filepath, encoding="utf8") as f:
         for string_ in f:
             counter.update(tokenizer(string_))
-    vocab = Vocab(counter, specials=['<unk>', '<pad>', '<bos>', '<eos>'], specials_first=True)
-    vocab.set_default_index = 0
-    return vocab
+    vocabulary = vocab(counter, specials=['<unk>', '<pad>', '<bos>', '<eos>'], special_first=True)
+    vocabulary.set_default_index = 0
+    return vocabulary
 
 
 def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> List[str]:
@@ -59,7 +59,7 @@ class DataProcessor:
         self.vocab_a.set_default_index(0)
         with iter(io.open(self.train_file_language_b, 'r')) as train_iter_b:
             self.vocab_b = partial_build_vocab_from_iterator(yield_tokens(train_iter_b, tokenizer=self.tokenizer_b))
-        self.vocab_b.set_default_index
+        self.vocab_b.set_default_index(0)
 
         self.pad_id = self.vocab_a['<pad>']
         self.bos_id = self.vocab_a['<bos>']
@@ -71,24 +71,22 @@ class DataProcessor:
         for (raw_a, raw_b) in zip(raw_a_iter, raw_b_iter):
             yield(raw_a, raw_b)
 
-    def generate_batch(self, batch, ):
+    def collation(self, batch, ):
         a_batch, b_batch = [], []
         for (a_item, b_item) in batch:
             a_item = self.tokenizer_a(a_item.rstrip("\n"))
             b_item = self.tokenizer_b(b_item.rstrip("\n"))
             a_item = self.vocab_a(a_item)
-            b_item = self.vocab_b(b_item))
+            b_item = self.vocab_b(b_item)
             a_batch.append(torch.cat(
                 [torch.tensor([self.bos_id]),
                  torch.tensor(a_item),
-                 torch.tensor([self.eos_id])],
-                dim=0
+                 torch.tensor([self.eos_id])]
             ))
             b_batch.append(torch.cat(
                 [torch.tensor([self.bos_id]),
                  torch.tensor(b_item),
-                 torch.tensor([self.eos_id])],
-                dim=0
+                 torch.tensor([self.eos_id])]
             ))
         a_batch = pad_sequence(a_batch, padding_value=self.pad_id)
         b_batch = pad_sequence(b_batch, padding_value=self.pad_id)
