@@ -3,8 +3,8 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable, List
 from os import PathLike
+from typing import Callable, List
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -65,29 +65,38 @@ class DataProcessor:
         self.bos_id = self.vocab_a['<bos>']
         self.eos_id = self.vocab_a['<eos>']
 
-    def data_process(self, target_file_language_a: str | PathLike, target_file_language_b: str | PathLike):
+    @staticmethod
+    def data_process(target_file_language_a: str | PathLike, target_file_language_b: str | PathLike):
         raw_a_iter = iter(io.open(target_file_language_a, encoding="utf8"))
         raw_b_iter = iter(io.open(target_file_language_b, encoding="utf8"))
         for (raw_a, raw_b) in zip(raw_a_iter, raw_b_iter):
-            yield(raw_a, raw_b)
+            yield raw_a, raw_b
+
+    def lang_a_text_transform(self, item):
+        item = self.tokenizer_a(item)
+        item = self.vocab_a(item)
+        item = torch.cat(
+            [torch.tensor([self.bos_id]),
+             torch.tensor(item),
+             torch.tensor([self.eos_id])]
+        )
+        return item
+
+    def lang_b_text_transform(self, item):
+        item = self.tokenizer_b(item)
+        item = self.vocab_b(item)
+        item = torch.cat(
+            [torch.tensor([self.bos_id]),
+             torch.tensor(item),
+             torch.tensor([self.eos_id])]
+        )
+        return item
 
     def collation(self, batch, ):
         a_batch, b_batch = [], []
         for (a_item, b_item) in batch:
-            a_item = self.tokenizer_a(a_item.rstrip("\n"))
-            b_item = self.tokenizer_b(b_item.rstrip("\n"))
-            a_item = self.vocab_a(a_item)
-            b_item = self.vocab_b(b_item)
-            a_batch.append(torch.cat(
-                [torch.tensor([self.bos_id]),
-                 torch.tensor(a_item),
-                 torch.tensor([self.eos_id])]
-            ))
-            b_batch.append(torch.cat(
-                [torch.tensor([self.bos_id]),
-                 torch.tensor(b_item),
-                 torch.tensor([self.eos_id])]
-            ))
+            a_batch.append(self.lang_a_text_transform(a_item.rstrip("\n")))
+            b_batch.append(self.lang_b_text_transform(b_item.rstrip("\n")))
         a_batch = pad_sequence(a_batch, padding_value=self.pad_id)
         b_batch = pad_sequence(b_batch, padding_value=self.pad_id)
         return a_batch, b_batch
