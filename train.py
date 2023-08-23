@@ -15,12 +15,17 @@ data_processor = DataProcessor(
     train_file_language_b=config['language_b_train_file']
 )
 
-#Prepare a training dataset using our DataProcessor instance
+# Prepare a training dataset using our DataProcessor instance
 train_iter = data_processor.data_process(
     target_file_language_a=config['language_a_train_file'],
     target_file_language_b=config['language_b_train_file']
 )
 
+# Prepare the testing dataset using our DataProcessor instance
+test_iter = data_processor.data_process(
+    target_file_language_a=config['language_a_test_file'],
+    target_file_language_b=config['language_b_test_file']
+)
 
 # Create a training data iterator to be used for the training loop
 train_dataloader = DataLoader(
