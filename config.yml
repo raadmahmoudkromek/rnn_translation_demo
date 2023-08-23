@@ -9,3 +9,6 @@ language_b_test_file: "language_files/spanish_test.txt"
 
 training:
   batch_size: 128
+  num_epochs: 10
+
+
