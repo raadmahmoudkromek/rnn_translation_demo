@@ -8,8 +8,8 @@ class Sequence2SequenceTransformer(nn.Module):
     raise NotImplementedError
 
 
-def training_iteration(model: Sequence2SequenceTransformer,
-                       train_dataloader: DataLoader,
-                       optimiser: Optimizer,
-                       loss_func: CrossEntropyLoss) -> float:
+def training_epoch(model: Sequence2SequenceTransformer,
+                   train_dataloader: DataLoader,
+                   optimiser: Optimizer,
+                   loss_func: CrossEntropyLoss) -> float:
     raise NotImplementedError

@@ -1,14 +1,24 @@
+# The language pipelines we wish to translate from (english) and to (spanish)
 language_a: "en_core_web_sm" # The most popular spacy pipeline for the english language
 language_b: "es_core_news_sm" # The most popular spacy pipeline for the spanish language
 
+# Training data corpora for our two languages
 language_a_train_file: "language_files/europarl-v7.es-en.en" # Training data file for english
 language_b_train_file: "language_files/europarl-v7.es-en.es" # Training data file for spanish
 
+#Testing corpora for our two languages
 language_a_test_file: "language_files/english_test.txt"
 language_b_test_file: "language_files/spanish_test.txt"
 
+#Hyperparameters for the training loop
 training:
   batch_size: 128
   num_epochs: 10
 
-
+#Hyperparameters for the model
+model:
+  embedding_size: 64
+  num_heads: 1
+  feed_forward_hidden_dimensions: 64
+  num_encoder_layers: 1
+  num_decoder_layers: 1

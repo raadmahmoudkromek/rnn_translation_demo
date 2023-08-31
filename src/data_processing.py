@@ -1,39 +1,42 @@
 import io
-from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
 from os import PathLike
-from typing import Callable, List
+from typing import Callable, List, Generator
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.data.utils import get_tokenizer
-from torchtext.vocab import vocab, build_vocab_from_iterator
+from torchtext.vocab import build_vocab_from_iterator
 
 
-def build_vocab(filepath, tokenizer):
+
+def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> Generator[List[str]]:
     """
-    Function for counting instances of tokenized words in a language dataset
+    Generator which takes the next element in a sentence iterable, tokenize it, and yield this tokenized value.
     Args:
-        filepath: Path to file containing language examples
-        tokenizer: A tokenization pipeline such as a spacy pipeline.
+        data_iterator: An iterator over strings.
+        tokenizer: A tokenizer such as a spacy pipeline
 
-    Returns:
-        A torchtext.vocab.Vocab object which numericalises a language case.
     """
-    counter = Counter()
-    with io.open(filepath, encoding="utf8") as f:
-        for string_ in f:
-            counter.update(tokenizer(string_))
-    vocabulary = vocab(counter, specials=['<unk>', '<pad>', '<bos>', '<eos>'], special_first=True)
-    vocabulary.set_default_index = 0
-    return vocabulary
-
-
-def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> List[str]:
     for data_sample in data_iterator:
         yield tokenizer(data_sample)
+
+
+def pairwise_sentence_iterator(target_file_language_a: str | PathLike, target_file_language_b: str | PathLike) -> \
+        Generator[str, str]:
+    """
+    Generator which returns paired elements from two language files.
+    Args:
+        target_file_language_a: Corpus text file corresponding to language a
+        target_file_language_b: Corpus text file corresponding to language b
+
+    """
+    raw_a_iter = iter(io.open(target_file_language_a, encoding="utf8"))
+    raw_b_iter = iter(io.open(target_file_language_b, encoding="utf8"))
+    for (raw_a, raw_b) in zip(raw_a_iter, raw_b_iter):
+        yield raw_a, raw_b
 
 
 @dataclass
@@ -43,7 +46,7 @@ class DataProcessor:
     the language we translate to (language b).
     """
     language_a: str  # The language of choice we wish to translate FROM, as a spacy pipeline e.g. "en_core_web_sm"
-    language_b: str  # The language we wish to translate TO, , as a spacy pipeline e.g. "es_core_news_sm"
+    language_b: str  # The language we wish to translate TO, as a spacy pipeline e.g. "es_core_news_sm"
     train_file_language_a: str  # A file consisting of a single sentence per line in language a
     train_file_language_b: str  # A file consisting of the same sentences as "train_file_language_a", but in language b
 
@@ -64,13 +67,6 @@ class DataProcessor:
         self.pad_id = self.vocab_a['<pad>']
         self.bos_id = self.vocab_a['<bos>']
         self.eos_id = self.vocab_a['<eos>']
-
-    @staticmethod
-    def data_process(target_file_language_a: str | PathLike, target_file_language_b: str | PathLike):
-        raw_a_iter = iter(io.open(target_file_language_a, encoding="utf8"))
-        raw_b_iter = iter(io.open(target_file_language_b, encoding="utf8"))
-        for (raw_a, raw_b) in zip(raw_a_iter, raw_b_iter):
-            yield raw_a, raw_b
 
     def lang_a_text_transform(self, item):
         item = self.tokenizer_a(item)

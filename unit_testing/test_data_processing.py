@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, mock_open, patch, MagicMock
-from src.data_processing import build_vocab, DataProcessor
+from src.data_processing import DataProcessor
 
 @pytest.fixture
 def sample_data(tmpdir):
@@ -15,12 +15,6 @@ def mock_tokenizer():
     tokenizer = Mock()
     tokenizer.side_effect = lambda x: x.split()
     return tokenizer
-
-def test_build_vocab(mock_tokenizer, sample_data):
-    vocab_a = build_vocab(sample_data[0], mock_tokenizer)
-    assert len(vocab_a) == 12  # Number of unique tokens in the sample data
-    vocab_b = build_vocab(sample_data[1], mock_tokenizer)
-    assert len(vocab_b) == 10  # Number of unique tokens in the sample data
 
 def test_data_processor_init(sample_data):
     dp = DataProcessor("en_core_web_sm", "es_core_news_sm", *sample_data)
@@ -37,7 +31,7 @@ def test_data_process(sample_data, tmpdir):
     target_file_a.write("Target A 1\nTarget A 2\n")
     target_file_b.write("Target B 1\nTarget B 2\n")
 
-    result = list(dp.data_process(str(target_file_a), str(target_file_b)))
+    result = list(data_process(str(target_file_a), str(target_file_b)))
     assert len(result) == 2
     assert result[0] == ("Target A 1\n", "Target B 1\n")
     assert result[1] == ("Target A 2\n", "Target B 2\n")
