@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
 from os import PathLike
-from typing import Callable, List, Generator, Tuple
+from typing import Callable, Generator
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -12,7 +12,7 @@ from torchtext.vocab import build_vocab_from_iterator, Vocab
 
 
 
-def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> Generator[List[str]]:
+def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> Generator[list[str]]:
     """
     Generator which takes the next element in a sentence iterable, tokenize it, and yield this tokenized value.
     Args:
@@ -81,7 +81,7 @@ class DataProcessor:
         )
         return item
 
-    def collation(self, batch: List[Tuple[str, str]]) -> Tuple[torch.Tensor, torch.Tensor]:
+    def collation(self, batch: list[tuple[str, str]]) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Function to prepare and pad tensors from a batch of paired string data.
         Args:

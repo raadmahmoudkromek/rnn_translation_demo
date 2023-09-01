@@ -1,3 +1,4 @@
+import torch
 import yaml
 from torch.utils.data import DataLoader
 
@@ -46,6 +47,8 @@ test_dataloader = DataLoader(
 )
 
 transformer = Sequence2SequenceTransformer()
+optimiser = torch.optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+loss_func = torch.nn.CrossEntropyLoss(ignore_index=data_processor.pad_id)
 
 for epoch in range(1, config['training']['num_epochs'] + 1):
     training_epoch(transformer, train_dataloader, optimiser=optimiser, loss_func=loss_func)
