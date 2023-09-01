@@ -3,12 +3,12 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
 from os import PathLike
-from typing import Callable, List, Generator
+from typing import Callable, List, Generator, Tuple
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.data.utils import get_tokenizer
-from torchtext.vocab import build_vocab_from_iterator
+from torchtext.vocab import build_vocab_from_iterator, Vocab
 
 
 
@@ -68,9 +68,12 @@ class DataProcessor:
         self.bos_id = self.vocab_a['<bos>']
         self.eos_id = self.vocab_a['<eos>']
 
-    def lang_a_text_transform(self, item):
-        item = self.tokenizer_a(item)
-        item = self.vocab_a(item)
+    def lang_text_transform(self, item, tokenizer: Callable, vocab: Vocab) -> torch.Tensor:
+        """
+        Function to take a language element, tokenize it, map the tokens to indices, and prepare a tensor.
+        """
+        item = tokenizer(item)
+        item = vocab(item)
         item = torch.cat(
             [torch.tensor([self.bos_id]),
              torch.tensor(item),
@@ -78,21 +81,60 @@ class DataProcessor:
         )
         return item
 
-    def lang_b_text_transform(self, item):
-        item = self.tokenizer_b(item)
-        item = self.vocab_b(item)
-        item = torch.cat(
-            [torch.tensor([self.bos_id]),
-             torch.tensor(item),
-             torch.tensor([self.eos_id])]
-        )
-        return item
-
-    def collation(self, batch, ):
+    def collation(self, batch: List[Tuple[str, str]]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Function to prepare and pad tensors from a batch of paired string data.
+        Args:
+            batch: A batch of paired string data.
+        """
         a_batch, b_batch = [], []
         for (a_item, b_item) in batch:
-            a_batch.append(self.lang_a_text_transform(a_item.rstrip("\n")))
-            b_batch.append(self.lang_b_text_transform(b_item.rstrip("\n")))
+            a_batch.append(
+                self.lang_text_transform(a_item.rstrip("\n"), tokenizer=self.tokenizer_a, vocab=self.vocab_a))
+            b_batch.append(
+                self.lang_text_transform(b_item.rstrip("\n"), tokenizer=self.tokenizer_a, vocab=self.vocab_a))
         a_batch = pad_sequence(a_batch, padding_value=self.pad_id)
         b_batch = pad_sequence(b_batch, padding_value=self.pad_id)
         return a_batch, b_batch
+
+    def create_mask(self, src: torch.Tensor, tgt: torch.Tensor):
+        """
+        Function to create a set of masks for the masking of padding tokens and the implementation of the transformer
+        self-attention mechanism, particularly to prevent the model from looking at tokens at future time-steps when
+        making predictions.
+        Args:
+            src: A pytorch tensor for the source language.
+            tgt: A pytorch tensor for the target language.
+
+        Returns:
+            src_mask, used during the encoder self-attention step
+            tgt_mask, used during the decoder self-attention step
+            src_padding_mask, used to indicate padding positions in the src sequence
+            tgt_padding_mask, used to indicate padding positions in the tgt sequence
+        """
+
+        src_seq_len = src.shape[0]
+        tgt_seq_len = tgt.shape[0]
+
+        tgt_mask = generate_square_subsequent_mask(tgt_seq_len)
+        src_mask = torch.zeros((src_seq_len, src_seq_len), device=DEVICE).type(torch.bool)
+
+        src_padding_mask = (src == self.pad_id).transpose(0, 1)
+        tgt_padding_mask = (tgt == self.pad_id).transpose(0, 1)
+        return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
+
+
+def generate_square_subsequent_mask(size: int):
+    """
+    Function which takes a sequence length (size), and creates a square mask for the self-attention mechanism decoder mechanism.
+    It first creates a square matrix of ones, which it then converts to an upper triangular matrix (torch.triu).
+    It then sets all 0-valued elements to -inf and all 1-valued elements to zero, effectively masking future positions.
+    Args:
+        size:
+
+    Returns:
+
+    """
+    mask = (torch.triu(torch.ones((size, size), device=DEVICE)) == 1).transpose(0, 1)
+    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    return mask
