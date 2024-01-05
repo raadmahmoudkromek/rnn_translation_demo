@@ -10,6 +10,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator, Vocab
 
+from src.device import DEVICE
 
 
 def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> Generator[list[str]]:
