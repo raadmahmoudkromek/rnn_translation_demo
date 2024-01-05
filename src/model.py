@@ -1,22 +1,30 @@
+import math
+
 import torch.nn as nn
 from torch import Tensor
 from torch.nn import CrossEntropyLoss, Transformer
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+
 class PositionalEncoding(nn.Module):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         raise NotImplementedError
+
     def forward(self):
         raise NotImplementedError
 
+
 class TokenEmbedding(nn.Module):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, vocab_size: int, emb_size: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        raise NotImplementedError
-    def forward(self):
-        raise NotImplementedError
+        self.embedding = nn.Embedding(vocab_size, emb_size)
+        self.emb_size = emb_size
+
+    def forward(self, tokens: Tensor):
+        raise self.embedding(tokens.long()) * math.sqrt(self.emb_size)
+
 
 class Sequence2SequenceTransformer(nn.Module):
     def __init__(self,
