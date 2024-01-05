@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import partial
 from os import PathLike
-from typing import Callable, Generator
+from typing import Callable, Generator, Tuple
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -13,7 +13,7 @@ from torchtext.vocab import build_vocab_from_iterator, Vocab
 from src.device import DEVICE
 
 
-def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> Generator[list[str]]:
+def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> Generator[list[str], None, None]:
     """
     Generator which takes the next element in a sentence iterable, tokenize it, and yield this tokenized value.
     Args:
@@ -26,7 +26,7 @@ def yield_tokens(data_iterator: Iterable, tokenizer: Callable) -> Generator[list
 
 
 def pairwise_sentence_iterator(target_file_language_a: str | PathLike, target_file_language_b: str | PathLike) -> \
-        Generator[str, str]:
+        Generator[Tuple[str, str], None, None]:
     """
     Generator which returns paired elements from two language files.
     Args:
