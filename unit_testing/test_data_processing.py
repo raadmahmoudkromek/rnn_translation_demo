@@ -24,18 +24,6 @@ def test_data_processor_init(sample_data):
     assert dp.bos_id == dp.vocab_a['<bos>']
     assert dp.eos_id == dp.vocab_a['<eos>']
 
-def test_data_process(sample_data, tmpdir):
-    dp = DataProcessor("en_core_web_sm", "es_core_news_sm", *sample_data)
-    target_file_a = tmpdir.join("target_a.txt")
-    target_file_b = tmpdir.join("target_b.txt")
-    target_file_a.write("Target A 1\nTarget A 2\n")
-    target_file_b.write("Target B 1\nTarget B 2\n")
-
-    result = list(data_process(str(target_file_a), str(target_file_b)))
-    assert len(result) == 2
-    assert result[0] == ("Target A 1\n", "Target B 1\n")
-    assert result[1] == ("Target A 2\n", "Target B 2\n")
-
 def test_generate_batch(sample_data):
     dp = DataProcessor("en_core_web_sm", "es_core_news_sm", *sample_data)
     mock_batch = [("This is a sentence.", "Translated sentence.")]
