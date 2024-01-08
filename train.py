@@ -52,7 +52,8 @@ transformer = Sequence2SequenceTransformer(num_encoder_layers=config['model']['n
                                            nhead=config['model']['num_heads'],
                                            src_vocab_size=len(data_processor.vocab_a),
                                            tgt_vocab_size=len(data_processor.vocab_b),
-                                           dim_feedforward=config['model']['feed_forward_hidden_dimensions'])
+                                           dim_feedforward=config['model']['feed_forward_hidden_dimensions'],
+                                           dropout=config['model']['dropout_rate'])
 optimiser = torch.optim.Adam(transformer.parameters(), lr=0.0001,
                              betas=(0.9, 0.98), eps=1e-9)
 loss_func = torch.nn.CrossEntropyLoss(ignore_index=data_processor.pad_id)
