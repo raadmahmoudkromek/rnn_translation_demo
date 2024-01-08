@@ -46,10 +46,17 @@ test_dataloader = DataLoader(
     collate_fn=data_processor.collation
 )
 
-transformer = Sequence2SequenceTransformer()
-optimiser = torch.optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
+transformer = Sequence2SequenceTransformer(num_encoder_layers=config['model']['num_encoder_layers'],
+                                           num_decoder_layers=config['model']['num_decoder_layers'],
+                                           d_model=config['model']['embedding_size'],
+                                           nhead=config['model']['num_heads'],
+                                           src_vocab_size=len(data_processor.vocab_a),
+                                           tgt_vocab_size=len(data_processor.vocab_b),
+                                           dim_feedforward=config['model']['feed_forward_hidden_dimensions'])
+optimiser = torch.optim.Adam(transformer.parameters(), lr=0.0001,
+                             betas=(0.9, 0.98), eps=1e-9)
 loss_func = torch.nn.CrossEntropyLoss(ignore_index=data_processor.pad_id)
 
 for epoch in range(1, config['training']['num_epochs'] + 1):
     training_epoch(transformer, train_dataloader, optimiser=optimiser, loss_func=loss_func)
-    evaluate_model(transformer, test_dataloader, loss_func=loss_func)
+evaluate_model(transformer, test_dataloader, loss_func=loss_func)
