@@ -3,8 +3,11 @@ import yaml
 from torch.utils.data import DataLoader
 
 from src.data_processing import DataProcessor, pairwise_sentence_iterator
+from src.device import DEVICE
 from src.evaluate import evaluate_model
 from src.model import Sequence2SequenceTransformer, training_epoch
+
+torch.manual_seed(0)
 
 # Open our general config file.
 with open('config.yml', 'r') as configfile:
@@ -54,10 +57,21 @@ transformer = Sequence2SequenceTransformer(num_encoder_layers=config['model']['n
                                            tgt_vocab_size=len(data_processor.vocab_b),
                                            dim_feedforward=config['model']['feed_forward_hidden_dimensions'],
                                            dropout=config['model']['dropout_rate'])
+transformer = transformer.to(DEVICE)
+
 optimiser = torch.optim.Adam(transformer.parameters(), lr=0.0001,
                              betas=(0.9, 0.98), eps=1e-9)
 loss_func = torch.nn.CrossEntropyLoss(ignore_index=data_processor.pad_id)
 
 for epoch in range(1, config['training']['num_epochs'] + 1):
-    training_epoch(transformer, train_dataloader, optimiser=optimiser, loss_func=loss_func)
+    print(f"Running training epoch {epoch}")
+    training_epoch(transformer,
+                   train_dataloader,
+                   create_mask=data_processor.create_mask,
+                   optimiser=optimiser,
+                   loss_func=loss_func)
+
+
+
+
 evaluate_model(transformer, test_dataloader, loss_func=loss_func)
