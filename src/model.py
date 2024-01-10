@@ -1,4 +1,5 @@
 import math
+from typing import Callable
 
 import torch
 import torch.nn as nn
@@ -6,28 +7,9 @@ from torch import Tensor
 from torch.nn import CrossEntropyLoss, Transformer
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-
-# Define a module for positional encoding. This module is responsible for creating and injecting positional information into token embeddings.
-class PositionalEncoding(nn.Module):
-    def __init__(self, emb_size: int, dropout: float, max_len: int = 5000, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Calculate positional embeddings
-        den = torch.exp(- torch.arange(0, emb_size, 2) * math.log(10000) / emb_size)
-        pos = torch.arange(0, max_len).reshape(max_len, 1)
-        pos_embedding = torch.zeros((max_len, emb_size))
-        # Calculate sinusoidal functions of different frequencies and embed them into the position tensor.
-        pos_embedding[:, 0::2] = torch.sin(pos * den)
-        pos_embedding[:, 1::2] = torch.cos(pos * den)
-        pos_embedding = pos_embedding.unsqueeze(-2)
-
-        # Set dropout and register positional embeddings as buffer
-        self.dropout = nn.Dropout(dropout)
-        self.register_buffer('pos_embedding', pos_embedding)
-
-    def forward(self, token_embedding: Tensor):
-        # Apply positional encoding to token embeddings
-        return self.dropout(token_embedding + self.pos_embedding[:token_embedding.size(0), :])
+from src.device import DEVICE
 
 
 # A simple wrapper for an embedding layer from PyTorch.
@@ -41,7 +23,31 @@ class TokenEmbedding(nn.Module):
     def forward(self, tokens: Tensor):
         # Forward pass through the embedding layer
         # mMultiplication by math.sqrt(self.emb_size) is a scaling factor used to stabilize the training process.
-        raise self.embedding(tokens.long()) * math.sqrt(self.emb_size)
+        return self.embedding(tokens.long()) * math.sqrt(self.emb_size)
+
+
+# Define a module for positional encoding. This module is responsible for creating and injecting positional information into token embeddings.
+class PositionalEncoding(nn.Module):
+    def __init__(self, emb_size: int, dropout: float, max_len: int = 5000, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Calculate positional embeddings
+        den = torch.exp(- torch.arange(0, emb_size, 2) * math.log(10000) / emb_size)
+        pos = torch.arange(0, max_len).reshape(max_len, 1)
+        pos_embedding = torch.zeros((max_len, emb_size))
+
+        # Calculate sinusoidal functions of different frequencies and embed them into the position tensor.
+        pos_embedding[:, 0::2] = torch.sin(pos * den)
+        pos_embedding[:, 1::2] = torch.cos(pos * den)
+        pos_embedding = pos_embedding.unsqueeze(-2)
+
+        # Set dropout and register positional embeddings as buffer
+        self.dropout = nn.Dropout(dropout)
+        self.register_buffer('pos_embedding', pos_embedding)
+
+    def forward(self, token_embedding: Tensor):
+        # Apply positional encoding to token embeddings
+        return self.dropout(token_embedding + self.pos_embedding[:token_embedding.size(0), :])
 
 
 class Sequence2SequenceTransformer(nn.Module):
@@ -96,6 +102,7 @@ class Sequence2SequenceTransformer(nn.Module):
 
 def training_epoch(model: Sequence2SequenceTransformer,
                    train_dataloader: DataLoader,
+                   create_mask: Callable,
                    optimiser: Optimizer,
                    loss_func: CrossEntropyLoss) -> list[float]:
     # Set the model to training mode
@@ -103,17 +110,26 @@ def training_epoch(model: Sequence2SequenceTransformer,
     # Record losses during training
     loss_record = []
 
-    for source, target in train_dataloader:
+    for source, target in tqdm(train_dataloader):
+        source = source.to(DEVICE)
+        target = target.type(torch.LongTensor).to(DEVICE)
+
         # Prepare target input and output for training
         target_input = target[:-1, :]
         target_output = target[1:, :]
 
+        source_mask, target_mask, source_padding_mask, target_padding_mask = create_mask(src=source,
+                                                                                         tgt=target_input)
+
         # Forward pass through the model
-        predictions = model(src=source, trg=target_input)
+        predictions = model(src=source, tgt=target_input,
+                            src_mask=source_mask, tgt_mask=target_mask,
+                            src_padding_mask=source_padding_mask, tgt_padding_mask=target_padding_mask,
+                            memory_key_padding_mask=source_padding_mask)
 
         # Zero the gradients, compute loss, backward pass, and optimizer step
         optimiser.zero_grad()
-        loss = loss_func(predictions, target_output)
+        loss = loss_func(predictions.reshape(-1, predictions.shape[-1]), target_output.reshape(-1))
         loss.backward()
         optimiser.step()
 
