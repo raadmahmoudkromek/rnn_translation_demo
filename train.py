@@ -1,5 +1,6 @@
 import torch
 import yaml
+from torch.utils.benchmark import timer
 from torch.utils.data import DataLoader
 
 from src.data_processing import DataProcessor, pairwise_sentence_iterator
@@ -68,13 +69,19 @@ optimiser = torch.optim.Adam(transformer.parameters(), lr=0.0001,
 loss_func = torch.nn.CrossEntropyLoss(ignore_index=data_processor.pad_id)
 
 for epoch in range(1, config['training']['num_epochs'] + 1):
-    print(f"Running training epoch {epoch}")
-    training_epoch(transformer,
-                   train_dataloader,
-                   create_mask=data_processor.create_mask,
-                   optimiser=optimiser,
-                   loss_func=loss_func)
+    start_time = timer()
 
+    print(f"Running training epoch {epoch}")
+    train_loss = training_epoch(transformer,
+                                train_dataloader,
+                                create_mask=data_processor.create_mask,
+                                optimiser=optimiser,
+                                loss_func=loss_func)
+    val_loss = evaluate_model(transformer,
+                              val_dataloader=test_dataloader,
+                              loss_func=loss_func)
+    end_time = timer()
+    print(f"Epoch: {epoch}, Train loss: {train_loss:.3f}, "f"Epoch time = {(end_time - start_time):.3f}s")
 
 
 
