@@ -59,6 +59,10 @@ transformer = Sequence2SequenceTransformer(num_encoder_layers=config['model']['n
                                            dropout=config['model']['dropout_rate'])
 transformer = transformer.to(DEVICE)
 
+for p in transformer.parameters():
+    if p.dim() > 1:
+        torch.nn.init.xavier_uniform_(p)
+
 optimiser = torch.optim.Adam(transformer.parameters(), lr=0.0001,
                              betas=(0.9, 0.98), eps=1e-9)
 loss_func = torch.nn.CrossEntropyLoss(ignore_index=data_processor.pad_id)
