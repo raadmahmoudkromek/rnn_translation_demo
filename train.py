@@ -68,10 +68,10 @@ optimiser = torch.optim.Adam(transformer.parameters(), lr=0.0001,
                              betas=(0.9, 0.98), eps=1e-9)
 loss_func = torch.nn.CrossEntropyLoss(ignore_index=data_processor.pad_id)
 
+print(f"Running train...")
 for epoch in range(1, config['training']['num_epochs'] + 1):
     start_time = timer()
 
-    print(f"Running training epoch {epoch}")
     train_loss = training_epoch(transformer,
                                 train_dataloader,
                                 create_mask=data_processor.create_mask,
@@ -79,7 +79,8 @@ for epoch in range(1, config['training']['num_epochs'] + 1):
                                 loss_func=loss_func)
     val_loss = evaluate_model(transformer,
                               val_dataloader=test_dataloader,
-                              loss_func=loss_func)
+                              loss_fn=loss_func,
+                              create_mask=data_processor.create_mask)
     end_time = timer()
     print(f"Epoch: {epoch}, Train loss: {train_loss:.3f}, "f"Epoch time = {(end_time - start_time):.3f}s")
 
