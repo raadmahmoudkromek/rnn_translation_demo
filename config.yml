@@ -18,8 +18,8 @@ training:
 #Hyperparameters for the model
 model:
   embedding_size: 64
-  num_heads: 1
+  num_heads: 4
   feed_forward_hidden_dimensions: 64
-  num_encoder_layers: 1
-  num_decoder_layers: 1
+  num_encoder_layers: 4
+  num_decoder_layers: 4
   dropout_rate: 0.2
