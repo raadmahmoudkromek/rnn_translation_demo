@@ -8,7 +8,7 @@ from typing import Callable, Generator, Tuple
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.data.utils import get_tokenizer
-from torchtext.vocab import build_vocab_from_iterator, Vocab
+from torchtext.vocab import build_vocab_from_iterator
 
 from src.device import DEVICE
 
@@ -69,12 +69,25 @@ class DataProcessor:
         self.bos_id = self.vocab_a['<bos>']
         self.eos_id = self.vocab_a['<eos>']
 
-    def lang_text_transform(self, item, tokenizer: Callable, vocab: Vocab) -> torch.Tensor:
+    def lang_a_text_transform(self, item) -> torch.Tensor:
         """
         Function to take a language element, tokenize it, map the tokens to indices, and prepare a tensor.
         """
-        item = tokenizer(item)
-        item = vocab(item)
+        item = self.tokenizer_a(item)
+        item = self.vocab_a(item)
+        item = torch.cat(
+            [torch.tensor([self.bos_id]),
+             torch.tensor(item),
+             torch.tensor([self.eos_id])]
+        )
+        return item
+
+    def lang_b_text_transform(self, item) -> torch.Tensor:
+        """
+        Function to take a language element, tokenize it, map the tokens to indices, and prepare a tensor.
+        """
+        item = self.tokenizer_b(item)
+        item = self.vocab_b(item)
         item = torch.cat(
             [torch.tensor([self.bos_id]),
              torch.tensor(item),
@@ -91,9 +104,9 @@ class DataProcessor:
         a_batch, b_batch = [], []
         for (a_item, b_item) in batch:
             a_batch.append(
-                self.lang_text_transform(a_item.rstrip("\n"), tokenizer=self.tokenizer_a, vocab=self.vocab_a))
+                self.lang_a_text_transform(a_item.rstrip("\n")))
             b_batch.append(
-                self.lang_text_transform(b_item.rstrip("\n"), tokenizer=self.tokenizer_a, vocab=self.vocab_a))
+                self.lang_b_text_transform(b_item.rstrip("\n")))
         a_batch = pad_sequence(a_batch, padding_value=self.pad_id)
         b_batch = pad_sequence(b_batch, padding_value=self.pad_id)
         return a_batch, b_batch
